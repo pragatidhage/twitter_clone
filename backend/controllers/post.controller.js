@@ -1,3 +1,4 @@
+import Notification from "../models/notification.model.js";
 import Post from "../models/post.model.js";
 import User from "../models/user.model.js";
 import { v2 as cloudinary } from 'cloudinary';
@@ -57,5 +58,69 @@ export const deletePost = async (req,res) =>{
     }catch(error){
         console.log("Error in deletePost controller: ",error);
         res.status(500).json({error:"Internal server error"});
+    }
+}
+
+export const commentOnPost = async (req,res) =>{
+    try{
+        const { text } = req.body;
+        const postId = req.params.id;
+        const userId = req.user._id;
+
+        if(!text){
+            return res.status(400).json({error:"text field is required"});
+        }
+
+        const post = await Post.findById(postId)
+        if(!post){
+            return res.status(404).json({error:"Post not found"})
+        }
+
+        const comment = {user: userId,text}
+        post.comments.push(comment);
+        await post.save();
+
+        res.status(200).json(post);
+
+    }catch(error){
+        console.log("Error in commentOnPost controller:",error);
+        res.status(500).json({error:"Internal server error"});
+    }
+}
+
+export const likeUnlikePost = async (req,res) =>{
+    try{
+        const { id:postId } =req.params;
+        const userId = req.user._id;
+        const post = await Post.findById(postId);
+
+        if(!post) return res.status(404).json({ error: "post not found"});
+
+        const userLikedPost = post.likes.includes(userId);
+
+        if(userLikedPost){
+            
+            await Post.updateOne({_id:postId}, {$pull:{likes: userId}});
+            
+            res.status(200).json({message : "Post Unliked"});
+        }else{
+            
+            post.likes.push(userId);
+            await post.save();
+
+            const notification = new Notification({
+                from: userId,
+                to: post.user,
+                type:"like",
+            })
+
+            await notification.save();
+            res.status(200).json({message : "Post Liked"});
+        }
+
+
+    }catch(error){
+        console.log("Error in likeUnlikePost : ",error.message);
+        res.status(500).json({error:error.message});
     }
 }
