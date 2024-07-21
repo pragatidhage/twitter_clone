@@ -6,11 +6,11 @@ import { generateTokenAndSetCookie } from '../lib/utils/generateToken.js';
 
 export const signup = async(req,res)=>{
     try{
-        const {username,fullname,email,password}= req.body;
+        const {email,username,fullname,password}= req.body;
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if(!emailRegex.test(email)){
-            return res.status(400).json({error:"Inavlid email fromat"});
+            return res.status(400).json({error:"Inavlid email format"});
         }
 
         const existingUser = await User.findOne({ username });
